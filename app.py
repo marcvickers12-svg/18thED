@@ -1,9 +1,15 @@
 import streamlit as st
 import json
 import math
-from utils.pdf_generator import generate_pdf
+import sys
+import os
 import tempfile
 from pathlib import Path
+
+# ✅ Ensure local 'utils' folder is visible to Python (fixes ModuleNotFoundError on Streamlit Cloud)
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from utils.pdf_generator import generate_pdf
 
 # ============ PAGE CONFIG ============
 st.set_page_config(
