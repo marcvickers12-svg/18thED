@@ -6,7 +6,7 @@ import os
 
 
 def safe_text(text: str) -> str:
-    """Ensure text is a string."""
+    """Ensure text is a string and safe to print."""
     if not isinstance(text, str):
         text = str(text)
     return text
@@ -15,30 +15,30 @@ def safe_text(text: str) -> str:
 class PDF(FPDF):
     def header(self):
         self.set_font("DejaVu", "B", 16)
-        self.cell(0, 10, "BS7671 Calc – Voltage Drop & Compliance Report", ln=True, align="C")
+        self.cell(0, 10, safe_text("BS7671 Calc – Voltage Drop & Compliance Report"), ln=True, align="C")
         self.ln(8)
 
     def footer(self):
         self.set_y(-15)
         self.set_font("DejaVu", "I", 8)
-        self.cell(0, 10, f"Generated on {datetime.date.today()} using BS7671 Calc", 0, 0, "C")
+        self.cell(0, 10, safe_text(f"Generated on {datetime.date.today()} using BS7671 Calc"), 0, 0, "C")
 
 
 def generate_pdf(output_path, data, logo_file=None):
     pdf = PDF()
-    pdf.add_page()
 
-    # ✅ Register a Unicode font (you can use built-in DejaVu from fpdf2)
-    from fpdf import FontFiles
-    from fpdf.ttfonts import TTFont
+    # ✅ Register fonts BEFORE adding a page or calling set_font()
     font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
     if os.path.exists(font_path):
         pdf.add_font("DejaVu", "", font_path, uni=True)
         pdf.add_font("DejaVu", "B", font_path, uni=True)
         pdf.add_font("DejaVu", "I", font_path, uni=True)
-        pdf.set_font("DejaVu", "", 12)
     else:
+        # fallback if not available
         pdf.set_font("Helvetica", "", 12)
+
+    pdf.add_page()
+    pdf.set_font("DejaVu", "", 12)
 
     # --- Optional logo ---
     if logo_file is not None:
@@ -51,7 +51,7 @@ def generate_pdf(output_path, data, logo_file=None):
         except Exception:
             pass
 
-    # --- Project Info ---
+    # --- Section 1: Project Info ---
     pdf.set_fill_color(220, 220, 220)
     pdf.set_font("DejaVu", "B", 12)
     pdf.cell(0, 10, "Project Information", ln=True, fill=True)
@@ -62,7 +62,7 @@ def generate_pdf(output_path, data, logo_file=None):
     pdf.cell(0, 8, f"Date: {datetime.date.today()}", ln=True)
     pdf.ln(5)
 
-    # --- Circuit Details ---
+    # --- Section 2: Circuit Details ---
     pdf.set_fill_color(220, 220, 220)
     pdf.set_font("DejaVu", "B", 12)
     pdf.cell(0, 10, "Circuit Details", ln=True, fill=True)
@@ -76,7 +76,7 @@ def generate_pdf(output_path, data, logo_file=None):
 
     pdf.ln(5)
 
-    # --- Compliance Section ---
+    # --- Section 3: Compliance ---
     pdf.set_fill_color(220, 220, 220)
     pdf.set_font("DejaVu", "B", 12)
     pdf.cell(0, 10, "Compliance", ln=True, fill=True)
