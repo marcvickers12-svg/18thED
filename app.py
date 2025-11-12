@@ -24,7 +24,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.title("⚡ 18th Edition Voltage Drop Calculator (Single Phase)")
+st.title("⚡ BS7671 Calc – Voltage Drop & Compliance Tool")
 st.caption("Complies with BS 7671 | Includes derating & SWA support")
 
 # ============ SIDEBAR: PROJECT INFO ============
