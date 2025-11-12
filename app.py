@@ -103,33 +103,33 @@ if st.button("Calculate Voltage Drop"):
     else:
         st.error(f"Not Compliant (> {limit}% limit)")
 
-    # ✅ Only show PDF export after calculation
-    if st.button("📄 Export to PDF"):
-        temp_dir = tempfile.gettempdir()
-        pdf_path = Path(temp_dir) / f"BS7671_Report_{job_number or 'Untitled'}.pdf"
+    # --- PDF Export (only after calculation) ---
+if st.button("📄 Export to PDF"):
+    temp_dir = tempfile.gettempdir()
+    pdf_path = Path(temp_dir) / f"BS7671_Report_{job_number or 'Untitled'}.pdf"
 
-        generate_pdf(pdf_path, {
-            "engineer": engineer,
-            "job_number": job_number,
-            "cable_type": cable_type,
-            "size": size,
-            "install_method": install_method,
-            "current": current,
-            "length": length,
-            "voltage": voltage,
-            "pf": pf,
-            "vd": f"{vd:.2f} V",
-            "vd_percent": f"{vd_percent:.2f} %",
-            "derating": Ca,
-            "Iz": f"{Iz:.2f} A",
-            "compliant": "Yes" if compliant else "No",
-            "limit": f"{limit} %"
-        }, logo_file=company_logo)
+    generate_pdf(pdf_path, {
+        "engineer": engineer,
+        "job_number": job_number,
+        "cable_type": cable_type,
+        "size": size,
+        "install_method": install_method,
+        "current": current,
+        "length": length,
+        "voltage": voltage,
+        "pf": pf,
+        "vd": f"{vd:.2f} V",
+        "vd_percent": f"{vd_percent:.2f} %",
+        "derating": Ca,
+        "Iz": f"{Iz:.2f} A",
+        "compliant": "Yes" if compliant else "No",
+        "limit": f"{limit} %"
+    }, logo_file=company_logo)
 
-        with open(pdf_path, "rb") as file:
-            st.download_button(
-                label="⬇️ Download PDF Report",
-                data=file,
-                file_name=f"BS7671_Report_{job_number or 'Untitled'}.pdf",
-                mime="application/pdf"
-            )
+    with open(pdf_path, "rb") as file:
+        st.download_button(
+            label="⬇️ Download PDF Report",
+            data=file,
+            file_name=f"BS7671_Report_{job_number or 'Untitled'}.pdf",
+            mime="application/pdf"
+        )
