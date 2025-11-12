@@ -106,8 +106,8 @@ if st.button("Calculate Voltage Drop"):
     else:
         st.error(f"Not Compliant (> {limit}% limit)")
 
-    # ============ PDF EXPORT ============
-    if st.button("📄 Export to PDF"):
+   # --- PDF Export Section ---
+if st.button("📄 Export to PDF"):
     temp_dir = tempfile.gettempdir()
     pdf_path = Path(temp_dir) / f"voltage_drop_report_{job_number or 'no_job'}.pdf"
 
