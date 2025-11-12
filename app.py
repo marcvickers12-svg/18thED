@@ -108,29 +108,31 @@ if st.button("Calculate Voltage Drop"):
 
     # ============ PDF EXPORT ============
     if st.button("📄 Export to PDF"):
-        temp_dir = tempfile.gettempdir()
-        pdf_path = Path(temp_dir) / f"voltage_drop_report_{job_number or 'no_job'}.pdf"
-        generate_pdf(pdf_path, {
-            "engineer": engineer,
-            "job_number": job_number,
-            "cable_type": cable_type,
-            "size": size,
-            "install_method": install_method,
-            "current": current,
-            "length": length,
-            "voltage": voltage,
-            "pf": pf,
-            "vd": vd,
-            "vd_percent": vd_percent,
-            "derating": Ca,
-            "Iz": Iz,
-            "compliant": compliant,
-            "limit": limit
-        }, logo_file=company_logo)
-        with open(pdf_path, "rb") as file:
-            st.download_button(
-                label="⬇️ Download PDF Report",
-                data=file,
-                file_name=f"Voltage_Drop_Report_{job_number or 'Report'}.pdf",
-                mime="application/pdf"
-            )
+    temp_dir = tempfile.gettempdir()
+    pdf_path = Path(temp_dir) / f"voltage_drop_report_{job_number or 'no_job'}.pdf"
+
+    generate_pdf(pdf_path, {
+        "engineer": engineer,
+        "job_number": job_number,
+        "cable_type": cable_type,
+        "size": size,
+        "install_method": install_method,
+        "current": current,
+        "length": length,
+        "voltage": voltage,
+        "pf": pf,
+        "vd": vd,
+        "vd_percent": vd_percent,
+        "derating": Ca,
+        "Iz": Iz,
+        "compliant": compliant,
+        "limit": limit
+    }, logo_file=company_logo)
+
+    with open(pdf_path, "rb") as file:
+        st.download_button(
+            label="⬇️ Download PDF Report",
+            data=file,
+            file_name=f"BS7671_Report_{job_number or 'Untitled'}.pdf",
+            mime="application/pdf"
+        )
