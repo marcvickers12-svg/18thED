@@ -6,10 +6,15 @@ import os
 import tempfile
 from pathlib import Path
 
-# ✅ Ensure local 'utils' folder is visible to Python (fixes ModuleNotFoundError on Streamlit Cloud)
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from utils.pdf_generator import generate_pdf
+# --- FIX: ensure Streamlit finds utils/pdf_generator.py regardless of working directory ---
+BASE_DIR = Path(__file__).resolve().parent
+UTILS_PATH = BASE_DIR / "utils"
+if UTILS_PATH.exists():
+    sys.path.append(str(UTILS_PATH))
+try:
+    from pdf_generator import generate_pdf
+except ModuleNotFoundError:
+    raise ImportError("Unable to import pdf_generator. Check that utils/pdf_generator.py exists and is correctly named.")
 
 # ============ PAGE CONFIG ============
 st.set_page_config(
