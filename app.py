@@ -79,7 +79,7 @@ derating_factors = {
 }
 Ca = derating_factors[install_method]
 
-# ============ CALCULATE ============
+# --- Calculate Voltage Drop & Save Results ---
 if st.button("Calculate Voltage Drop"):
     data = cable_data[cable_type][size]
     R = data["R"] / 1000  # Ω/m
@@ -89,26 +89,13 @@ if st.button("Calculate Voltage Drop"):
     vd = current * (R * math.cos(math.acos(pf)) + X * math.sin(math.acos(pf))) * length
     vd_percent = (vd / voltage) * 100
 
+    # Compliance limit
     limit = 3 if "Lighting" in circuit_type else 5
     compliant = vd_percent <= limit
     Iz = current / Ca
 
-    st.success("✅ Calculation complete")
-    st.metric("Voltage Drop (V)", f"{vd:.2f}")
-    st.metric("Voltage Drop (%)", f"{vd_percent:.2f}%")
-    st.metric("Derated Current (A)", f"{Iz:.2f}")
-
-    if compliant:
-        st.success(f"Compliant (≤ {limit}% limit)")
-    else:
-        st.error(f"Not Compliant (> {limit}% limit)")
-
-    # --- PDF Export (only after calculation) ---
-if st.button("📄 Export to PDF"):
-    temp_dir = tempfile.gettempdir()
-    pdf_path = Path(temp_dir) / f"BS7671_Report_{job_number or 'Untitled'}.pdf"
-
-    generate_pdf(pdf_path, {
+    # --- Store results in session state ---
+    st.session_state.calc_results = {
         "engineer": engineer,
         "job_number": job_number,
         "cable_type": cable_type,
@@ -124,12 +111,33 @@ if st.button("📄 Export to PDF"):
         "Iz": f"{Iz:.2f} A",
         "compliant": "Yes" if compliant else "No",
         "limit": f"{limit} %"
-    }, logo_file=company_logo)
+    }
 
-    with open(pdf_path, "rb") as file:
-        st.download_button(
-            label="⬇️ Download PDF Report",
-            data=file,
-            file_name=f"BS7671_Report_{job_number or 'Untitled'}.pdf",
-            mime="application/pdf"
-        )
+    st.success("✅ Calculation complete")
+    st.metric("Voltage Drop (V)", f"{vd:.2f}")
+    st.metric("Voltage Drop (%)", f"{vd_percent:.2f}%")
+    st.metric("Derated Current (A)", f"{Iz:.2f}")
+
+    if compliant:
+        st.success(f"Compliant (≤ {limit}% limit)")
+    else:
+        st.error(f"Not Compliant (> {limit}% limit)")
+
+# --- PDF Export Section (Only active after calculation) ---
+if "calc_results" in st.session_state:
+    st.divider()
+    st.subheader("📄 Export Options")
+
+    if st.button("📄 Export to PDF"):
+        temp_dir = tempfile.gettempdir()
+        pdf_path = Path(temp_dir) / f"BS7671_Report_{st.session_state.calc_results['job_number'] or 'Untitled'}.pdf"
+
+        generate_pdf(pdf_path, st.session_state.calc_results, logo_file=company_logo)
+
+        with open(pdf_path, "rb") as file:
+            st.download_button(
+                label="⬇️ Download PDF Report",
+                data=file,
+                file_name=f"BS7671_Report_{st.session_state.calc_results['job_number'] or 'Untitled'}.pdf",
+                mime="application/pdf"
+            )
