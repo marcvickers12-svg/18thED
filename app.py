@@ -6,7 +6,7 @@ import os
 import tempfile
 from pathlib import Path
 
-# --- FIX: ensure Streamlit finds utils/pdf_generator.py regardless of working directory ---
+# --- FIX 1: Ensure Streamlit can import utils/pdf_generator ---
 BASE_DIR = Path(__file__).resolve().parent
 UTILS_PATH = BASE_DIR / "utils"
 if UTILS_PATH.exists():
@@ -14,7 +14,7 @@ if UTILS_PATH.exists():
 try:
     from pdf_generator import generate_pdf
 except ModuleNotFoundError:
-    raise ImportError("Unable to import pdf_generator. Check that utils/pdf_generator.py exists and is correctly named.")
+    raise ImportError("Unable to import pdf_generator. Check that app/utils/pdf_generator.py exists and is correctly named.")
 
 # ============ PAGE CONFIG ============
 st.set_page_config(
@@ -33,8 +33,13 @@ engineer = st.sidebar.text_input("Engineer Name")
 job_number = st.sidebar.text_input("Job Number")
 company_logo = st.sidebar.file_uploader("Upload Company Logo (optional)", type=["png", "jpg", "jpeg"])
 
-# ============ LOAD CABLE DATA ============
-with open("data/cable_data.json") as f:
+# --- FIX 2: Safely load cable data using absolute path ---
+DATA_PATH = BASE_DIR / "data" / "cable_data.json"
+if not DATA_PATH.exists():
+    st.error(f"⚠️ Could not find data file at: {DATA_PATH}")
+    st.stop()
+
+with open(DATA_PATH, "r") as f:
     cable_data = json.load(f)
 
 # ============ USER INPUTS ============
