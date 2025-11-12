@@ -3,6 +3,7 @@ from PIL import Image
 import datetime
 import tempfile
 import os
+import io
 
 
 def safe_text(text: str) -> str:
@@ -19,11 +20,24 @@ class PDF(FPDF):
 
     def header(self):
         # --- Dynamic logo (top-right corner) ---
-        if self.logo_file and os.path.exists(self.logo_file):
-            try:
-                self.image(self.logo_file, x=165, y=10, w=30)
-            except Exception:
-                pass
+        if self.logo_file:
+            temp_path = None
+
+            # Handle BytesIO uploads (Streamlit)
+            if isinstance(self.logo_file, io.BytesIO):
+                img = Image.open(self.logo_file)
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                img.save(temp_file.name, format="PNG")
+                temp_path = temp_file.name
+            elif isinstance(self.logo_file, str) and os.path.exists(self.logo_file):
+                temp_path = self.logo_file
+
+            # Draw logo safely
+            if temp_path:
+                try:
+                    self.image(temp_path, x=165, y=10, w=30)
+                except Exception:
+                    pass
 
         # --- Title centered below logo ---
         self.set_y(20)
@@ -40,29 +54,17 @@ class PDF(FPDF):
 def generate_pdf(output_path, data, logo_file=None):
     pdf = PDF(logo_file=logo_file)
 
-    # ✅ Register Unicode-capable font (DejaVu Sans)
+    # ✅ Register Unicode-safe font
     font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
     if os.path.exists(font_path):
         pdf.add_font("DejaVu", "", font_path, uni=True)
         pdf.add_font("DejaVu", "B", font_path, uni=True)
         pdf.add_font("DejaVu", "I", font_path, uni=True)
     else:
-        # Fallback to Helvetica if DejaVu isn't available
         pdf.set_font("Helvetica", "", 12)
 
-    # Add a page (after fonts are loaded)
     pdf.add_page()
     pdf.set_font("DejaVu", "", 12)
-
-    # --- Optional logo preprocessing (for Streamlit uploads) ---
-    if logo_file and not os.path.exists(logo_file):
-        try:
-            img = Image.open(logo_file)
-            temp_logo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-            img.save(temp_logo.name, format="PNG")
-            pdf.logo_file = temp_logo.name
-        except Exception:
-            pass
 
     # --- Section 1: Project Info ---
     pdf.set_fill_color(220, 220, 220)
