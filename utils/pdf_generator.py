@@ -6,28 +6,39 @@ import os
 
 
 def safe_text(text: str) -> str:
-    """Convert text to Latin-1 safe encoding."""
+    """Ensure text is a string."""
     if not isinstance(text, str):
         text = str(text)
-    return text.encode("latin-1", "replace").decode("latin-1")
+    return text
 
 
 class PDF(FPDF):
     def header(self):
-        self.set_font("Helvetica", "B", 16)
-        self.cell(0, 10, safe_text("BS7671 Calc – Voltage Drop & Compliance Report"), ln=True, align="C")
+        self.set_font("DejaVu", "B", 16)
+        self.cell(0, 10, "BS7671 Calc – Voltage Drop & Compliance Report", ln=True, align="C")
         self.ln(8)
 
     def footer(self):
         self.set_y(-15)
-        self.set_font("Helvetica", "I", 8)
-        self.cell(0, 10, safe_text(f"Generated on {datetime.date.today()} using BS7671 Calc"), 0, 0, "C")
+        self.set_font("DejaVu", "I", 8)
+        self.cell(0, 10, f"Generated on {datetime.date.today()} using BS7671 Calc", 0, 0, "C")
 
 
 def generate_pdf(output_path, data, logo_file=None):
     pdf = PDF()
     pdf.add_page()
-    pdf.set_font("Helvetica", "", 12)
+
+    # ✅ Register a Unicode font (you can use built-in DejaVu from fpdf2)
+    from fpdf import FontFiles
+    from fpdf.ttfonts import TTFont
+    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    if os.path.exists(font_path):
+        pdf.add_font("DejaVu", "", font_path, uni=True)
+        pdf.add_font("DejaVu", "B", font_path, uni=True)
+        pdf.add_font("DejaVu", "I", font_path, uni=True)
+        pdf.set_font("DejaVu", "", 12)
+    else:
+        pdf.set_font("Helvetica", "", 12)
 
     # --- Optional logo ---
     if logo_file is not None:
@@ -40,22 +51,22 @@ def generate_pdf(output_path, data, logo_file=None):
         except Exception:
             pass
 
-    # --- Section 1: Project Info ---
+    # --- Project Info ---
     pdf.set_fill_color(220, 220, 220)
-    pdf.set_font("Helvetica", "B", 12)
+    pdf.set_font("DejaVu", "B", 12)
     pdf.cell(0, 10, "Project Information", ln=True, fill=True)
-    pdf.set_font("Helvetica", "", 11)
+    pdf.set_font("DejaVu", "", 11)
 
     pdf.cell(95, 8, f"Engineer: {safe_text(data.get('engineer', 'N/A'))}", ln=False)
     pdf.cell(95, 8, f"Job Number: {safe_text(data.get('job_number', 'N/A'))}", ln=True)
     pdf.cell(0, 8, f"Date: {datetime.date.today()}", ln=True)
     pdf.ln(5)
 
-    # --- Section 2: Circuit Details ---
+    # --- Circuit Details ---
     pdf.set_fill_color(220, 220, 220)
-    pdf.set_font("Helvetica", "B", 12)
+    pdf.set_font("DejaVu", "B", 12)
     pdf.cell(0, 10, "Circuit Details", ln=True, fill=True)
-    pdf.set_font("Helvetica", "", 11)
+    pdf.set_font("DejaVu", "", 11)
 
     for key, value in data.items():
         if key not in ["engineer", "job_number", "compliant"]:
@@ -65,22 +76,22 @@ def generate_pdf(output_path, data, logo_file=None):
 
     pdf.ln(5)
 
-    # --- Section 3: Compliance ---
+    # --- Compliance Section ---
     pdf.set_fill_color(220, 220, 220)
-    pdf.set_font("Helvetica", "B", 12)
+    pdf.set_font("DejaVu", "B", 12)
     pdf.cell(0, 10, "Compliance", ln=True, fill=True)
 
-    compliant = data.get("compliant", "N/A")
-    pdf.set_font("Helvetica", "B", 12)
-    if compliant.lower() == "yes":
+    compliant = data.get("compliant", "N/A").lower()
+    pdf.set_font("DejaVu", "B", 12)
+    if compliant == "yes":
         pdf.set_text_color(0, 128, 0)
         pdf.cell(0, 10, "✅ Compliant – Within BS7671 Voltage Drop Limits", ln=True)
-    elif compliant.lower() == "no":
+    elif compliant == "no":
         pdf.set_text_color(255, 0, 0)
         pdf.cell(0, 10, "❌ Not Compliant – Exceeds Voltage Drop Limits", ln=True)
     else:
         pdf.set_text_color(0, 0, 0)
-        pdf.cell(0, 10, f"Compliance: {compliant}", ln=True)
+        pdf.cell(0, 10, f"Compliance: {safe_text(compliant)}", ln=True)
 
     pdf.set_text_color(0, 0, 0)
     pdf.ln(10)
