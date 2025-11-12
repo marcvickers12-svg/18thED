@@ -4,17 +4,17 @@ import math
 import sys
 import os
 import tempfile
+import sys
 from pathlib import Path
 
-# --- FIX 1: Ensure Streamlit can import utils/pdf_generator ---
+# --- Make sure we can import from utils folder ---
 BASE_DIR = Path(__file__).resolve().parent
 UTILS_PATH = BASE_DIR / "utils"
-if UTILS_PATH.exists():
-    sys.path.append(str(UTILS_PATH))
-try:
-    from pdf_generator import generate_pdf
-except ModuleNotFoundError:
-    raise ImportError("Unable to import pdf_generator. Check that app/utils/pdf_generator.py exists and is correctly named.")
+if str(UTILS_PATH) not in sys.path:
+    sys.path.insert(0, str(UTILS_PATH))
+
+from pdf_generator import generate_pdf
+
 
 # ============ PAGE CONFIG ============
 st.set_page_config(
