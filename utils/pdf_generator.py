@@ -13,10 +13,23 @@ def safe_text(text: str) -> str:
 
 
 class PDF(FPDF):
+    def __init__(self, logo_file=None):
+        super().__init__()
+        self.logo_file = logo_file
+
     def header(self):
+        # --- Dynamic logo (top-right corner) ---
+        if self.logo_file and os.path.exists(self.logo_file):
+            try:
+                self.image(self.logo_file, x=165, y=10, w=30)
+            except Exception:
+                pass
+
+        # --- Title centered below logo ---
+        self.set_y(20)
         self.set_font("DejaVu", "B", 16)
         self.cell(0, 10, safe_text("BS7671 Calc – Voltage Drop & Compliance Report"), ln=True, align="C")
-        self.ln(8)
+        self.ln(5)
 
     def footer(self):
         self.set_y(-15)
@@ -25,29 +38,29 @@ class PDF(FPDF):
 
 
 def generate_pdf(output_path, data, logo_file=None):
-    pdf = PDF()
+    pdf = PDF(logo_file=logo_file)
 
-    # ✅ Register fonts BEFORE adding a page or calling set_font()
+    # ✅ Register Unicode-capable font (DejaVu Sans)
     font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
     if os.path.exists(font_path):
         pdf.add_font("DejaVu", "", font_path, uni=True)
         pdf.add_font("DejaVu", "B", font_path, uni=True)
         pdf.add_font("DejaVu", "I", font_path, uni=True)
     else:
-        # fallback if not available
+        # Fallback to Helvetica if DejaVu isn't available
         pdf.set_font("Helvetica", "", 12)
 
+    # Add a page (after fonts are loaded)
     pdf.add_page()
     pdf.set_font("DejaVu", "", 12)
 
-    # --- Optional logo ---
-    if logo_file is not None:
+    # --- Optional logo preprocessing (for Streamlit uploads) ---
+    if logo_file and not os.path.exists(logo_file):
         try:
             img = Image.open(logo_file)
             temp_logo = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
             img.save(temp_logo.name, format="PNG")
-            pdf.image(temp_logo.name, 160, 8, 35)
-            os.unlink(temp_logo.name)
+            pdf.logo_file = temp_logo.name
         except Exception:
             pass
 
@@ -95,6 +108,10 @@ def generate_pdf(output_path, data, logo_file=None):
 
     pdf.set_text_color(0, 0, 0)
     pdf.ln(10)
+
+    # --- Footer note ---
+    pdf.set_font("DejaVu", "I", 9)
+    pdf.cell(0, 8, "Report generated automatically using BS7671 Calc", align="C", ln=True)
 
     pdf.output(str(output_path))
     return output_path
