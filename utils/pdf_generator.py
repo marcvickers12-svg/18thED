@@ -7,7 +7,7 @@ import io
 
 
 def safe_text(text: str) -> str:
-    """Ensure text is a string and safe to print."""
+    """Ensure text is string-safe for FPDF."""
     if not isinstance(text, str):
         text = str(text)
     return text
@@ -19,12 +19,10 @@ class PDF(FPDF):
         self.logo_file = logo_file
 
     def header(self):
-        # --- Dynamic logo (top-right corner) ---
+        # --- Company Logo (top-right corner) ---
         if self.logo_file:
             temp_path = None
-
-            # Handle BytesIO uploads (Streamlit)
-            if isinstance(self.logo_file, io.BytesIO):
+            if isinstance(self.logo_file, io.BytesIO):  # Handle uploaded file
                 img = Image.open(self.logo_file)
                 temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
                 img.save(temp_file.name, format="PNG")
@@ -32,14 +30,13 @@ class PDF(FPDF):
             elif isinstance(self.logo_file, str) and os.path.exists(self.logo_file):
                 temp_path = self.logo_file
 
-            # Draw logo safely
             if temp_path:
                 try:
                     self.image(temp_path, x=165, y=10, w=30)
                 except Exception:
                     pass
 
-        # --- Title centered below logo ---
+        # --- Title ---
         self.set_y(20)
         self.set_font("DejaVu", "B", 16)
         self.cell(0, 10, safe_text("BS7671 Calc – Voltage Drop & Compliance Report"), ln=True, align="C")
@@ -48,13 +45,13 @@ class PDF(FPDF):
     def footer(self):
         self.set_y(-15)
         self.set_font("DejaVu", "I", 8)
-        self.cell(0, 10, safe_text(f"Generated on {datetime.date.today()} using BS7671 Calc"), 0, 0, "C")
+        self.cell(0, 10, safe_text(f"Generated on {datetime.date.today()} using BS7671 Calc v2"), 0, 0, "C")
 
 
 def generate_pdf(output_path, data, logo_file=None):
     pdf = PDF(logo_file=logo_file)
 
-    # ✅ Register Unicode-safe font
+    # --- Register Unicode-capable font ---
     font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
     if os.path.exists(font_path):
         pdf.add_font("DejaVu", "", font_path, uni=True)
@@ -66,54 +63,73 @@ def generate_pdf(output_path, data, logo_file=None):
     pdf.add_page()
     pdf.set_font("DejaVu", "", 12)
 
-    # --- Section 1: Project Info ---
+    # --- Section: Project Info ---
     pdf.set_fill_color(220, 220, 220)
     pdf.set_font("DejaVu", "B", 12)
     pdf.cell(0, 10, "Project Information", ln=True, fill=True)
     pdf.set_font("DejaVu", "", 11)
-
-    pdf.cell(95, 8, f"Engineer: {safe_text(data.get('engineer', 'N/A'))}", ln=False)
-    pdf.cell(95, 8, f"Job Number: {safe_text(data.get('job_number', 'N/A'))}", ln=True)
+    pdf.cell(0, 8, f"Engineer: {safe_text(data.get('engineer', 'N/A'))}", ln=True)
+    pdf.cell(0, 8, f"Job Number: {safe_text(data.get('job_number', 'N/A'))}", ln=True)
     pdf.cell(0, 8, f"Date: {datetime.date.today()}", ln=True)
     pdf.ln(5)
 
-    # --- Section 2: Circuit Details ---
+    # --- Section: Derating Factors ---
     pdf.set_fill_color(220, 220, 220)
     pdf.set_font("DejaVu", "B", 12)
-    pdf.cell(0, 10, "Circuit Details", ln=True, fill=True)
+    pdf.cell(0, 10, "Derating Factors (BS7671 Tables 4C1–4C3)", ln=True, fill=True)
     pdf.set_font("DejaVu", "", 11)
-
-    for key, value in data.items():
-        if key not in ["engineer", "job_number", "compliant"]:
-            label = key.replace("_", " ").title()
-            pdf.cell(60, 8, f"{safe_text(label)}:", ln=False)
-            pdf.cell(0, 8, safe_text(str(value)), ln=True)
-
+    pdf.cell(95, 8, f"Ca (Temperature): {safe_text(data.get('Ca', 'N/A'))}", ln=False)
+    pdf.cell(95, 8, f"Cg (Grouping): {safe_text(data.get('Cg', 'N/A'))}", ln=True)
+    pdf.cell(95, 8, f"Ci (Insulation): {safe_text(data.get('Ci', 'N/A'))}", ln=False)
+    pdf.cell(95, 8, f"Cd (Total): {safe_text(data.get('Cd', 'N/A'))}", ln=True)
+    pdf.cell(0, 8, f"Iz Base: {safe_text(data.get('Iz Base', 'N/A'))} A", ln=True)
+    pdf.cell(0, 8, f"Iz Corrected (Iz × Cd): {safe_text(data.get('Iz Corrected', 'N/A'))} A", ln=True)
     pdf.ln(5)
 
-    # --- Section 3: Compliance ---
-    pdf.set_fill_color(220, 220, 220)
+    # --- Thermal Compliance Section ---
     pdf.set_font("DejaVu", "B", 12)
-    pdf.cell(0, 10, "Compliance", ln=True, fill=True)
+    pdf.set_fill_color(180, 255, 180) if data.get("Thermal Compliance") == "PASS" else pdf.set_fill_color(255, 200, 200)
+    pdf.cell(0, 10,
+              f"Thermal Compliance: {safe_text(data.get('Thermal Compliance', 'N/A'))}",
+              ln=True, fill=True)
+    pdf.set_font("DejaVu", "", 11)
+    pdf.cell(0, 8, f"Design Current (Ib): {safe_text(data.get('Ib', 'N/A'))} A", ln=True)
+    pdf.cell(0, 8, f"Corrected Capacity (Iz × Cd): {safe_text(data.get('Iz Corrected', 'N/A'))} A", ln=True)
+    pdf.ln(5)
 
-    compliant = data.get("compliant", "N/A").lower()
+    # --- Voltage Drop Section ---
     pdf.set_font("DejaVu", "B", 12)
-    if compliant == "yes":
-        pdf.set_text_color(0, 128, 0)
-        pdf.cell(0, 10, "✅ Compliant – Within BS7671 Voltage Drop Limits", ln=True)
-    elif compliant == "no":
-        pdf.set_text_color(255, 0, 0)
-        pdf.cell(0, 10, "❌ Not Compliant – Exceeds Voltage Drop Limits", ln=True)
+    pdf.set_fill_color(180, 255, 180) if data.get("Voltage Compliance") == "PASS" else pdf.set_fill_color(255, 200, 200)
+    pdf.cell(0, 10, "Voltage Drop Compliance", ln=True, fill=True)
+    pdf.set_font("DejaVu", "", 11)
+    pdf.cell(0, 8, f"Voltage Drop (V): {safe_text(data.get('Voltage Drop (V)', 'N/A'))}", ln=True)
+    pdf.cell(0, 8, f"Voltage Drop (%): {safe_text(data.get('Voltage Drop (%)', 'N/A'))}", ln=True)
+    pdf.cell(0, 8, f"Limit: {safe_text(data.get('Voltage Drop Limit', 'N/A'))}", ln=True)
+    pdf.cell(0, 8, f"Compliance: {safe_text(data.get('Voltage Compliance', 'N/A'))}", ln=True)
+    pdf.ln(5)
+
+    # --- Overall Compliance ---
+    pdf.set_font("DejaVu", "B", 14)
+    overall = safe_text(data.get("Overall Compliance", "N/A"))
+    if overall == "PASS":
+        pdf.set_fill_color(0, 180, 0)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(0, 12, "✅ OVERALL COMPLIANCE: PASS", ln=True, align="C", fill=True)
+    elif overall == "FAIL":
+        pdf.set_fill_color(200, 0, 0)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(0, 12, "❌ OVERALL COMPLIANCE: FAIL", ln=True, align="C", fill=True)
     else:
+        pdf.set_fill_color(255, 255, 150)
         pdf.set_text_color(0, 0, 0)
-        pdf.cell(0, 10, f"Compliance: {safe_text(compliant)}", ln=True)
-
+        pdf.cell(0, 12, f"⚠️ OVERALL STATUS: {overall}", ln=True, align="C", fill=True)
     pdf.set_text_color(0, 0, 0)
     pdf.ln(10)
 
-    # --- Footer note ---
+    # --- Footer Note ---
     pdf.set_font("DejaVu", "I", 9)
-    pdf.cell(0, 8, "Report generated automatically using BS7671 Calc", align="C", ln=True)
+    pdf.cell(0, 8, "All calculations are based on BS7671:2018+A2:2022.", ln=True, align="C")
 
+    # --- Save PDF ---
     pdf.output(str(output_path))
     return output_path
