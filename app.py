@@ -4,14 +4,14 @@ import pandas as pd
 import datetime
 import tempfile
 from pathlib import Path
-from utils.pdf_generator import generate_pdf  # ✅ Ensure this file exists
+from utils.pdf_generator import generate_pdf  # ✅ Ensure pdf_generator.py exists in utils/
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="BS7671 Calc – 18th Edition", page_icon="⚡", layout="centered")
 
 # --- HEADER ---
 st.title("⚡ BS7671 Calc – Voltage Drop & Thermal Compliance Tool")
-st.caption("Conforms to BS 7671:2018 + A2:2022")
+st.caption("Complies with BS 7671:2018 + A2:2022")
 
 # ===================== PROJECT DETAILS =====================
 st.header("📋 Project Information")
@@ -54,7 +54,6 @@ ci_dict = {
     "0.63 - Totally Surrounded by Insulation": 0.63
 }
 
-# --- Drop-down Inputs ---
 ca = st.selectbox("Ambient Temperature Factor (Ca)", ca_dict.keys())
 cg = st.selectbox("Grouping Factor (Cg)", cg_dict.keys())
 ci = st.selectbox("Thermal Insulation Factor (Ci)", ci_dict.keys())
@@ -74,7 +73,8 @@ else:
     thermal_color = "red"
 
 st.markdown(f"**Total Derating Factor (Cd):** {cd}")
-st.markdown(f"**Corrected Current-Carrying Capacity (Iz × Cd):** {iz_corrected} A")
+st.markdown(f"**Corrected Capacity (Iz × Cd):** {iz_corrected} A")
+
 st.markdown(
     f"""
     <div style="background-color:{thermal_color};padding:15px;border-radius:10px;text-align:center;color:white;font-size:22px;font-weight:bold;">
@@ -84,22 +84,91 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# --- Reference Tables ---
+with st.expander("📘 Show BS7671 Derating Reference Tables"):
+    st.markdown("#### Table 4C1 – Ambient Temperature (Ca)")
+    st.dataframe(pd.DataFrame({
+        "Ambient Temp (°C)": ["25", "30", "35", "40", "45", "50", "55", "60"],
+        "Ca (PVC)": ["1.03", "1.00", "0.94", "0.87", "0.79", "0.71", "0.61", "0.50"],
+        "Ca (XLPE)": ["1.04", "1.00", "0.96", "0.91", "0.87", "0.82", "0.76", "0.71"]
+    }), use_container_width=True)
+
+    st.markdown("#### Table 4C2 – Grouping (Cg)")
+    st.dataframe(pd.DataFrame({
+        "No. of Circuits": ["1", "2", "3", "4", "5", "6", "7", "8", "9"],
+        "Cg": ["1.00", "0.85", "0.70", "0.63", "0.60", "0.57", "0.54", "0.52", "0.50"]
+    }), use_container_width=True)
+
+    st.markdown("#### Table 4C3 – Thermal Insulation (Ci)")
+    st.dataframe(pd.DataFrame({
+        "Installation Condition": [
+            "Clipped Direct / Free Air",
+            "Touching Wall / Trunking",
+            "Enclosed in Conduit (in insulation)",
+            "Totally Surrounded by Insulation"
+        ],
+        "Ci": ["1.00", "0.89", "0.75", "0.63"]
+    }), use_container_width=True)
+
 # ===================== VOLTAGE DROP =====================
 st.header("🔋 Voltage Drop Compliance (Appendix 4)")
+
+# --- Cable Database (BS7671 Appendix 4 data) ---
+cable_data = {
+    "PVC T&E (Table 4D5)": {
+        "1.5 mm²": (12.1, 0.08),
+        "2.5 mm²": (7.41, 0.08),
+        "4.0 mm²": (4.61, 0.08),
+        "6.0 mm²": (3.08, 0.08),
+        "10 mm²": (1.83, 0.07),
+        "16 mm²": (1.15, 0.07)
+    },
+    "XLPE SWA (Table 4E2A)": {
+        "2.5 mm²": (7.41, 0.08),
+        "4.0 mm²": (4.61, 0.08),
+        "6.0 mm²": (3.08, 0.08),
+        "10 mm²": (1.83, 0.07),
+        "16 mm²": (1.15, 0.07),
+        "25 mm²": (0.727, 0.07),
+        "35 mm²": (0.524, 0.07)
+    },
+    "XLPE SWA 3-Core (Table 4E4A)": {
+        "4.0 mm²": (4.95, 0.09),
+        "6.0 mm²": (3.30, 0.09),
+        "10 mm²": (1.91, 0.08),
+        "16 mm²": (1.21, 0.08),
+        "25 mm²": (0.780, 0.07),
+        "35 mm²": (0.554, 0.07),
+        "50 mm²": (0.386, 0.07)
+    }
+}
+
+cable_type = st.selectbox("Cable Type", list(cable_data.keys()))
+cable_size = st.selectbox("Cable Size", list(cable_data[cable_type].keys()))
+r_auto, x_auto = cable_data[cable_type][cable_size]
+
+st.markdown(f"**Auto-selected:** R = {r_auto} mΩ/m | X = {x_auto} mΩ/m")
+
+manual_override = st.checkbox("Manually override R and X values")
+if manual_override:
+    r = st.number_input("Resistance R (mΩ/m)", min_value=0.01, value=r_auto)
+    x = st.number_input("Reactance X (mΩ/m)", min_value=0.01, value=x_auto)
+else:
+    r, x = r_auto, x_auto
 
 voltage = st.number_input("System Voltage (V)", min_value=100, max_value=1000, value=230)
 length = st.number_input("Cable Length (m)", min_value=1.0, step=1.0, value=20.0)
 pf = st.number_input("Power Factor (pf)", min_value=0.1, max_value=1.0, value=0.9)
-r = st.number_input("Resistance R (mΩ/m)", min_value=0.01, value=4.61) / 1000
-x = st.number_input("Reactance X (mΩ/m)", min_value=0.01, value=0.08) / 1000
 
-vd = ib * (r * math.cos(math.acos(pf)) + x * math.sin(math.acos(pf))) * length
+# --- Voltage Drop Calculation ---
+r_ohm = r / 1000
+x_ohm = x / 1000
+vd = ib * (r_ohm * math.cos(math.acos(pf)) + x_ohm * math.sin(math.acos(pf))) * length * 2
 vd_percent = round((vd / voltage) * 100, 2)
 
 usage_type = st.selectbox("Circuit Type", ["Lighting (3%)", "General / Other (5%)"])
 limit = 3 if "Lighting" in usage_type else 5
 
-# --- Voltage Drop Compliance ---
 if vd_percent <= limit:
     vdrop_compliant = True
     vdrop_text = f"✅ PASS — Voltage Drop = {vd_percent:.2f}% ≤ {limit}% limit"
@@ -111,7 +180,6 @@ else:
 
 st.markdown(f"**Voltage Drop (V):** {vd:.2f}")
 st.markdown(f"**Voltage Drop (%):** {vd_percent:.2f}%")
-
 st.markdown(
     f"""
     <div style="background-color:{v_color};padding:15px;border-radius:10px;text-align:center;color:white;font-size:22px;font-weight:bold;">
@@ -154,6 +222,12 @@ if st.button("📄 Generate PDF Report"):
     calc_results = {
         "engineer": engineer_name or "N/A",
         "job_number": job_number or "N/A",
+        "Cable Type": cable_type,
+        "Cable Size": cable_size,
+        "Resistance R (mΩ/m)": r,
+        "Reactance X (mΩ/m)": x,
+        "Length (m)": length,
+        "Power Factor": pf,
         "Ib": ib,
         "Iz Base": iz_base,
         "Ca": ca_val,
