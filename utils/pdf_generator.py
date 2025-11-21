@@ -17,6 +17,15 @@ class PDF(FPDF):
         super().__init__()
         self.logo_file = logo_file
 
+        # Register fonts safely
+        font_dir = "/usr/share/fonts/truetype/dejavu"
+        try:
+            self.add_font("DejaVu", "", os.path.join(font_dir, "DejaVuSans.ttf"), uni=True)
+            self.add_font("DejaVu", "B", os.path.join(font_dir, "DejaVuSans-Bold.ttf"), uni=True)
+            self.add_font("DejaVu", "I", os.path.join(font_dir, "DejaVuSans-Oblique.ttf"), uni=True)
+        except Exception:
+            pass
+
     def header(self):
         # --- Company Logo ---
         if self.logo_file:
@@ -49,10 +58,6 @@ class PDF(FPDF):
 
 def generate_pdf(output_path, data, logo_file=None):
     pdf = PDF(logo_file=logo_file)
-    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    if os.path.exists(font_path):
-        pdf.add_font("DejaVu", "", font_path, uni=True)
-        pdf.add_font("DejaVu", "B", font_path, uni=True)
     pdf.add_page()
     pdf.set_font("DejaVu", "", 12)
 
