@@ -44,7 +44,7 @@ class PDF(FPDF):
         self.set_y(-15)
         self.set_font("DejaVu", "I", 8)
         today_str = datetime.date.today().strftime("%d/%m/%Y")
-        self.cell(0, 10, safe_text(f"Generated on {today_str} using BS7671 Calc v2"), 0, 0, "C")
+        self.cell(0, 10, safe_text(f"Generated on {today_str} using BS7671 Calc v3"), 0, 0, "C")
 
 
 def generate_pdf(output_path, data, logo_file=None):
@@ -67,6 +67,18 @@ def generate_pdf(output_path, data, logo_file=None):
     pdf.cell(0, 8, f"Date: {today_str}", ln=True)
     pdf.ln(5)
 
+    # --- Protective Device Section ---
+    pdf.set_fill_color(220, 220, 220)
+    pdf.set_font("DejaVu", "B", 12)
+    pdf.cell(0, 10, "Protective Device Information", ln=True, fill=True)
+    pdf.set_font("DejaVu", "", 11)
+    pdf.cell(0, 8, f"Device Type: {safe_text(data.get('Device Type', 'N/A'))}", ln=True)
+    pdf.cell(0, 8, f"Details: {safe_text(data.get('Device Details', 'N/A'))}", ln=True)
+    pdf.cell(0, 8, f"Rating (In): {safe_text(data.get('Device Rating', 'N/A'))} A", ln=True)
+    pdf.set_fill_color(200, 255, 200) if data.get("Device Compliance") == "PASS" else pdf.set_fill_color(255, 200, 200)
+    pdf.cell(0, 10, f"Device Compliance: {data.get('Device Compliance')}", ln=True, fill=True)
+    pdf.ln(5)
+
     # --- Derating Section ---
     pdf.set_fill_color(220, 220, 220)
     pdf.set_font("DejaVu", "B", 12)
@@ -75,6 +87,8 @@ def generate_pdf(output_path, data, logo_file=None):
     pdf.cell(0, 8, f"Ca: {data.get('Ca')} | Cg: {data.get('Cg')} | Ci: {data.get('Ci')} | Cd: {data.get('Cd')}", ln=True)
     pdf.cell(0, 8, f"Iz Base: {data.get('Iz Base')} A", ln=True)
     pdf.cell(0, 8, f"Iz Corrected: {data.get('Iz Corrected')} A", ln=True)
+    pdf.set_fill_color(200, 255, 200) if data.get("Thermal Compliance") == "PASS" else pdf.set_fill_color(255, 200, 200)
+    pdf.cell(0, 10, f"Thermal Compliance: {data.get('Thermal Compliance')}", ln=True, fill=True)
     pdf.ln(5)
 
     # --- Cable Info ---
@@ -88,9 +102,13 @@ def generate_pdf(output_path, data, logo_file=None):
     pdf.cell(0, 8, f"Length: {data.get('Length (m)')} m | Power Factor: {data.get('Power Factor')}", ln=True)
     pdf.ln(5)
 
-    # --- Compliance ---
-    pdf.set_fill_color(200, 255, 200) if data.get("Thermal Compliance") == "PASS" else pdf.set_fill_color(255, 200, 200)
-    pdf.cell(0, 10, f"Thermal Compliance: {data.get('Thermal Compliance')}", ln=True, fill=True)
+    # --- Voltage Drop ---
+    pdf.set_fill_color(220, 220, 220)
+    pdf.set_font("DejaVu", "B", 12)
+    pdf.cell(0, 10, "Voltage Drop Results", ln=True, fill=True)
+    pdf.set_font("DejaVu", "", 11)
+    pdf.cell(0, 8, f"Voltage Drop (V): {data.get('Voltage Drop (V)')}", ln=True)
+    pdf.cell(0, 8, f"Voltage Drop (%): {data.get('Voltage Drop (%)')} (Limit {data.get('Voltage Drop Limit')})", ln=True)
     pdf.set_fill_color(200, 255, 200) if data.get("Voltage Compliance") == "PASS" else pdf.set_fill_color(255, 200, 200)
     pdf.cell(0, 10, f"Voltage Drop Compliance: {data.get('Voltage Compliance')}", ln=True, fill=True)
     pdf.ln(5)
@@ -106,5 +124,6 @@ def generate_pdf(output_path, data, logo_file=None):
         pdf.set_text_color(255, 255, 255)
         pdf.cell(0, 12, "❌ OVERALL COMPLIANCE: FAIL", ln=True, align="C", fill=True)
     pdf.set_text_color(0, 0, 0)
+
     pdf.output(str(output_path))
     return output_path
