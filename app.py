@@ -42,7 +42,7 @@ st.subheader("Protective Device")
 device_type = st.selectbox("MCB Type", ["B", "C", "D"])
 device_rating = st.selectbox("MCB Rating (A)", [6, 10, 16, 20, 32, 40, 50, 63])
 
-# --- Resistance and Reactance Lookup ---
+# --- Resistance and Reactance Lookup (Safe Fallback) ---
 try:
     with open("data/cable_data.json") as f:
         cable_data = json.load(f)
@@ -50,8 +50,13 @@ except FileNotFoundError:
     st.error("Could not find data file at: data/cable_data.json")
     st.stop()
 
-R = cable_data[cable_type][f"{size:.1f}"]["R"]
-X = cable_data[cable_type][f"{size:.1f}"]["X"]
+size_key = str(size)
+if size_key not in cable_data.get(cable_type, {}):
+    st.error(f"⚠️ Cable size {size_key} mm² not found for {cable_type} in cable_data.json.")
+    st.stop()
+
+R = cable_data[cable_type][size_key]["R"]
+X = cable_data[cable_type][size_key]["X"]
 
 # --- Voltage Drop ---
 vd = (math.sqrt(R ** 2 + X ** 2) * current * length) / 1000
@@ -120,7 +125,6 @@ if st.button("📄 Generate PDF Report"):
             "Thermal Compliance": thermal_compliance,
             "Device Type": f"MCB Type {device_type}",
             "Device Rating": device_rating,
-            "Device Compliance": "PASS",
             "Zs Calculated": round(zs_calc, 2),
             "Zs Limit": zs_limit,
             "Zs Compliance": zs_compliance,
