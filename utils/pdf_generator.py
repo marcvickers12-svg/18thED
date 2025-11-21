@@ -17,15 +17,6 @@ class PDF(FPDF):
         super().__init__()
         self.logo_file = logo_file
 
-        # Register fonts safely
-        font_dir = "/usr/share/fonts/truetype/dejavu"
-        try:
-            self.add_font("DejaVu", "", os.path.join(font_dir, "DejaVuSans.ttf"), uni=True)
-            self.add_font("DejaVu", "B", os.path.join(font_dir, "DejaVuSans-Bold.ttf"), uni=True)
-            self.add_font("DejaVu", "I", os.path.join(font_dir, "DejaVuSans-Oblique.ttf"), uni=True)
-        except Exception:
-            pass
-
     def header(self):
         # --- Company Logo ---
         if self.logo_file:
@@ -43,15 +34,14 @@ class PDF(FPDF):
                 except Exception:
                     pass
 
-        # --- Title ---
         self.set_y(20)
-        self.set_font("DejaVu", "B", 16)
+        self.set_font("Helvetica", "B", 16)
         self.cell(0, 10, safe_text("BS7671 Calc – Voltage Drop & Compliance Report"), ln=True, align="C")
         self.ln(5)
 
     def footer(self):
         self.set_y(-15)
-        self.set_font("DejaVu", "I", 8)
+        self.set_font("Helvetica", "I", 8)
         today_str = datetime.date.today().strftime("%d/%m/%Y")
         self.cell(0, 10, safe_text(f"Generated on {today_str} using BS7671 Calc v3"), 0, 0, "C")
 
@@ -59,24 +49,24 @@ class PDF(FPDF):
 def generate_pdf(output_path, data, logo_file=None):
     pdf = PDF(logo_file=logo_file)
     pdf.add_page()
-    pdf.set_font("DejaVu", "", 12)
+    pdf.set_font("Helvetica", "", 12)
 
     # --- Project Info ---
     pdf.set_fill_color(220, 220, 220)
-    pdf.set_font("DejaVu", "B", 12)
+    pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 10, "Project Information", ln=True, fill=True)
-    pdf.set_font("DejaVu", "", 11)
+    pdf.set_font("Helvetica", "", 11)
     today_str = datetime.date.today().strftime("%d/%m/%Y")
     pdf.cell(0, 8, f"Engineer: {safe_text(data.get('engineer', 'N/A'))}", ln=True)
     pdf.cell(0, 8, f"Job Number: {safe_text(data.get('job_number', 'N/A'))}", ln=True)
     pdf.cell(0, 8, f"Date: {today_str}", ln=True)
     pdf.ln(5)
 
-    # --- Protective Device Section ---
+    # --- Protective Device ---
     pdf.set_fill_color(220, 220, 220)
-    pdf.set_font("DejaVu", "B", 12)
+    pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 10, "Protective Device Information", ln=True, fill=True)
-    pdf.set_font("DejaVu", "", 11)
+    pdf.set_font("Helvetica", "", 11)
     pdf.cell(0, 8, f"Device Type: {safe_text(data.get('Device Type', 'N/A'))}", ln=True)
     pdf.cell(0, 8, f"Details: {safe_text(data.get('Device Details', 'N/A'))}", ln=True)
     pdf.cell(0, 8, f"Rating (In): {safe_text(data.get('Device Rating', 'N/A'))} A", ln=True)
@@ -86,9 +76,9 @@ def generate_pdf(output_path, data, logo_file=None):
 
     # --- Derating Section ---
     pdf.set_fill_color(220, 220, 220)
-    pdf.set_font("DejaVu", "B", 12)
+    pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 10, "Derating Factors", ln=True, fill=True)
-    pdf.set_font("DejaVu", "", 11)
+    pdf.set_font("Helvetica", "", 11)
     pdf.cell(0, 8, f"Ca: {data.get('Ca')} | Cg: {data.get('Cg')} | Ci: {data.get('Ci')} | Cd: {data.get('Cd')}", ln=True)
     pdf.cell(0, 8, f"Iz Base: {data.get('Iz Base')} A", ln=True)
     pdf.cell(0, 8, f"Iz Corrected: {data.get('Iz Corrected')} A", ln=True)
@@ -98,27 +88,38 @@ def generate_pdf(output_path, data, logo_file=None):
 
     # --- Cable Info ---
     pdf.set_fill_color(220, 220, 220)
-    pdf.set_font("DejaVu", "B", 12)
+    pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 10, "Cable Information", ln=True, fill=True)
-    pdf.set_font("DejaVu", "", 11)
+    pdf.set_font("Helvetica", "", 11)
     pdf.cell(0, 8, f"Cable Type: {data.get('Cable Type')}", ln=True)
     pdf.cell(0, 8, f"Size: {data.get('Cable Size')}", ln=True)
-    pdf.cell(0, 8, f"R: {data.get('Resistance R (mΩ/m)')} mΩ/m | X: {data.get('Reactance X (mΩ/m)')} mΩ/m", ln=True)
+    pdf.cell(0, 8, f"R1: {data.get('Resistance R (mΩ/m)')} mΩ/m | R2: {data.get('Reactance X (mΩ/m)')} mΩ/m", ln=True)
     pdf.cell(0, 8, f"Length: {data.get('Length (m)')} m | Power Factor: {data.get('Power Factor')}", ln=True)
     pdf.ln(5)
 
     # --- Voltage Drop ---
     pdf.set_fill_color(220, 220, 220)
-    pdf.set_font("DejaVu", "B", 12)
+    pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 10, "Voltage Drop Results", ln=True, fill=True)
-    pdf.set_font("DejaVu", "", 11)
+    pdf.set_font("Helvetica", "", 11)
     pdf.cell(0, 8, f"Voltage Drop (V): {data.get('Voltage Drop (V)')}", ln=True)
     pdf.cell(0, 8, f"Voltage Drop (%): {data.get('Voltage Drop (%)')} (Limit {data.get('Voltage Drop Limit')})", ln=True)
     pdf.set_fill_color(200, 255, 200) if data.get("Voltage Compliance") == "PASS" else pdf.set_fill_color(255, 200, 200)
     pdf.cell(0, 10, f"Voltage Drop Compliance: {data.get('Voltage Compliance')}", ln=True, fill=True)
     pdf.ln(5)
 
-    # --- Overall ---
+    # --- Earth Fault Loop Impedance (Zs) ---
+    pdf.set_fill_color(220, 220, 220)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 10, "Earth Fault Loop Impedance (Zs)", ln=True, fill=True)
+    pdf.set_font("Helvetica", "", 11)
+    pdf.cell(0, 8, f"Calculated Zs: {data.get('Zs Calculated')} Ω", ln=True)
+    pdf.cell(0, 8, f"Max Zs Allowed (BS7671): {data.get('Zs Limit')} Ω", ln=True)
+    pdf.set_fill_color(200, 255, 200) if data.get("Zs Compliance") == "PASS" else pdf.set_fill_color(255, 200, 200)
+    pdf.cell(0, 10, f"Zs Compliance: {data.get('Zs Compliance')}", ln=True, fill=True)
+    pdf.ln(10)
+
+    # --- Overall Compliance ---
     overall = data.get("Overall Compliance", "N/A")
     if overall == "PASS":
         pdf.set_fill_color(0, 180, 0)
